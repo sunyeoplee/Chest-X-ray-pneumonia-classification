@@ -68,7 +68,7 @@ data_dir = os.path.join(root_dir, "MedNIST")
 # -- set deterministic training for reproducibility
 ## set_determinism will set the random seeds in both Numpy and PyTorch to ensure reproducibility. 
 ## seed of 0 is a bad thing to do. In general, seeds should contain a reasonable number of binary 1's and small numbers don't have them
-set_determinism(seed=0) 
+set_determinism(seed=123)
 
 # -- import data 
 class_names = sorted(x for x in os.listdir(data_dir) if os.path.isdir(os.path.join(data_dir, x)))
@@ -176,7 +176,7 @@ test_loader = torch.utils.data.DataLoader(test_ds, batch_size=batch_size, num_wo
 # -- define network and optimizer
 learning_rate = 1e-5
 
-device = torch.device("cuda:0")#if torch.cuda.is_available() )
+device = torch.device("cuda:0") if torch.cuda.is_available() else 'cpu'
 net = densenet121(spatial_dims=2, in_channels=1, out_channels=num_class).to(device)
 loss_function = torch.nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(net.parameters(), learning_rate)

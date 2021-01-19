@@ -157,7 +157,7 @@ def concat(data):
     return (f"{data[0]} + {data[1]} = {data[0] + data[1]}",)
 
 zipped_data = monai.data.ZipDataset([dataset_1, dataset_2], transform=concat)
-for item in zipped_data:
+for item in zipped_data:     
     print(item)
 
 ## Common Datasets

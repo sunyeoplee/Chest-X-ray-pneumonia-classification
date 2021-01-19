@@ -21,24 +21,28 @@ device_name = torch.cuda.get_device_name(cur_device)
 print(f"Number of CUDA-enabled GPUs: {device_cnt}\nCurrent Device ID: {cur_device}\nCurrent Device Name: {device_name}")
 device.type
 
+from PIL import Image 
 import monai
 print(monai.__version__)
 from monai.config import print_config
 print_config()
 from monai.transforms import Compose, LoadPNG, AddChannel, ScaleIntensity, ToTensor, RandRotate, RandFlip, RandZoom, \
-    NormalizeIntensity, SpatialPad, SqueezeDim
+    NormalizeIntensity, SpatialPad, SqueezeDim, Resize
 from monai.networks.nets import densenet121
 from monai.metrics import compute_roc_auc
 
 import matplotlib.pyplot as plt
-from PIL import Image
+
+root_dir = r'C:\Users\sunyp\Desktop\딥노이드\Python\github repository\deepnoid-practices\chest-x-ray-pneumonia-classification'
+os.chdir(root_dir)
 
 # -- set up hyperparameters
 seed = 1
 torch.manual_seed(seed)
 momentum = 0.5
-batch_size = 64
-
+batch_size = 128
+val_interval = 5
+n_epoch = 100
 
 
 # -- load data
@@ -74,7 +78,7 @@ image_height_list = [] # a list of image height
 image_channel_list = [] # the number of channels
 image_width_list = [Image.open(x).size[0] for x in image_file_list if x.endswith('.jpeg' or '.jpg')]
 image_height_list = [Image.open(x).size[1] for x in image_file_list if x.endswith('.jpeg' or '.jpg')]
-image_channel_list = [Image.open(x).size[-1] for x in image_file_list if ]
+# image_channel_list = [Image.open(x).size[-1] for x in image_file_list if ]
 
 
 plt.hist(image_width_list)
@@ -160,8 +164,8 @@ train_transforms = Compose([
     AddChannel(), # needs to come early because most monai transforms expect the channel to be the first dimension
     Resize((64, 64)),
     NormalizeIntensity(),
-    # RandRotate(range_x=15, prob=0.5, keep_size=True),
-    # RandFlip(spatial_axis=0, prob=0.5),
+    RandRotate(range_x=15, prob=0.5, keep_size=True),
+    RandFlip(spatial_axis=0, prob=0.5),
 
     ToTensor()
 ])
@@ -191,7 +195,7 @@ my_transforms = Compose([
 example = my_transforms(trainX[1])
 plt.imshow(example, 'gray')
 plt.show()
- 
+
 
 
 class chestxray_dataset(Dataset):
@@ -226,8 +230,7 @@ model = densenet121(
 ).to(device)
 loss_function = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
-val_interval = 1
-n_epoch = 2
+
 
 
 
@@ -284,3 +287,21 @@ print(f"train completed, best_metric: {best_metric:.4f} at epoch: {best_metric_e
 
 # check if the model was on cuda
 next(model.parameters()).is_cuda
+
+# -- plot the loss and metric
+plt.figure("train", (12, 6))
+plt.subplot(1, 2, 1)
+plt.title("Epoch Average Loss")
+x = [i + 1 for i in range(len(epoch_loss_values))]
+y = epoch_loss_values
+plt.xlabel("epoch")
+plt.plot(x, y)
+plt.subplot(1, 2, 2)
+plt.title("Val AUC")
+x = [(i + 1) for i in range(len(metric_values))]
+y = metric_values
+plt.xlabel("epoch")
+plt.plot(x, y)
+plt.show()
+
+# -- evaluate the model on the test dataset
